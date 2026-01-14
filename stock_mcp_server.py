@@ -9,8 +9,10 @@ def query_stock_price(symbol:str) -> str:
     url = f"http://qt.gtimg.cn/q={full_code}"
     
     try:
+        # 模拟浏览器header  防止被拦截
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers, timeout=10)
+        # 腾讯财经的编码方式是gbk
         response.encoding = 'gbk'
         text = response.text
 
