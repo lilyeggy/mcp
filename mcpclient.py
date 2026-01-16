@@ -2,6 +2,7 @@ import asyncio
 from mcp import ClientSession,StdioServerParameters
 from mcp.client.stdio import stdio_client
 from openai import OpenAI
+import json
 
 client = OpenAI(
     api_key="sk-m4Q9TMINyGQiKnxJPlMtfLkHzs6Td1OZqpQ8ibdpTMI7QEzJ",
@@ -24,6 +25,15 @@ async def main():
 
             # 获取server 里定义的 tools
             mcp_tools = await session.list_tools()
+            print("\n" + "="*30)
+            print("🛡️  当前已加载的 MCP 工具清单:")
+            print("="*30)
+
+            for tool in mcp_tools.tools:
+                print(f"🔧 工具名称: {tool.name}")
+                print(f"📝 功能描述: {tool.description}")
+                print(f"📊 输入参数: {tool.inputSchema.get('properties', {}).keys()}")
+                print("-" * 30)
 
             # 将 MCP工具转化为大模型 API 能够识别的格式
             # 这个过程和单一让API 调用工具是一致的
@@ -31,14 +41,14 @@ async def main():
                 "type":"function",
                 "function":{
                     "name":tool.name,
-                    "description":tool.description or "股票查询工具",
+                    "description":tool.description, # 这里获取的tool.description就是 tool 的注释
                     "parameters" :tool.inputSchema
                 } 
             } for tool in mcp_tools.tools
             ]
             messages = [{
                 "role":"user",
-                "content":"帮我查一下贵州茅台的股票价格，并给出你的看法"
+                "content":"帮我查一下北京的天气"
             }]
 
             response = client.chat.completions.create(
@@ -53,21 +63,32 @@ async def main():
             if message.tool_calls:
                 messages.append(message)
                 for tool_call in message.tool_calls:
+                    args = json.loads(tool_call.function.arguments)
                     tool_result = await session.call_tool(
                         tool_call.function.name,
-                        eval(tool_call.function.arguments)
+                        args
                     )
+                    tool_output = "".join([
+                        content.text 
+                        for content in tool_result.content 
+                        if hasattr(content, 'text')
+                    ])
+                    print(f"DEBUG - 发给模型的结果内容: {tool_output}")
+                    print(f"\n🤖 模型决策：调用工具 [{tool_call.function.name}]")
+                    print(f"📥 提取参数：{tool_call.function.arguments}")
                     # 将运行结果存入对话历史
                     messages.append({
                         "role":"tool",
                         "tool_call_id":tool_call.id,
-                        "content":str(tool_result.content)
+                        "content":tool_output
                     })
 
                 # 第二次请求，让模型根据工具结果给出回答
                 final_response = client.chat.completions.create(
                     model = "intern-s1",
-                    messages = messages
+                    messages = messages,
+                    tools = available_tools, 
+                    tool_choice = "auto"
                 )
                 print(f"\nAI 的回答：\n{final_response.choices[0].message.content}")
             else:
