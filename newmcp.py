@@ -1,9 +1,14 @@
 from openai import OpenAI
 import requests
 import base64
+import json
 
-API_KEY = "sk-m4Q9TMINyGQiKnxJPlMtfLkHzs6Td1OZqpQ8ibdpTMI7QEzJ"
-url = "https://chat.intern-ai.org.cn/api/v1"
+with open("config.json","r") as f:
+    config = json.load(f)
+api_key = config['api_key']
+base_url = config['base_url']
+API_KEY = api_key
+url = base_url
 
 client = OpenAI(
     api_key=API_KEY,

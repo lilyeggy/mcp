@@ -4,16 +4,23 @@ from mcp.client.stdio import stdio_client
 from openai import OpenAI
 import json
 
+with open("config.json","r") as f:
+    config = json.load(f)
+    
+api_key = config['api_key']
+base_url = config['base_url']
+
+
 client = OpenAI(
-    api_key="sk-m4Q9TMINyGQiKnxJPlMtfLkHzs6Td1OZqpQ8ibdpTMI7QEzJ",
-    base_url="https://chat.intern-ai.org.cn/api/v1"
+    api_key=api_key,
+    base_url=base_url
 )
 
 
 # 配置你的 MCP Server 路径 
 server_params = StdioServerParameters(
-    command="/Users/mac/miniconda3/envs/intern/bin/python", # 当前虚拟环境的 python 位置
-    args=["/Users/mac/Documents/intern-s1/stock_mcp_server.py"], # mcp server 位置
+    command="/Users/mac/anaconda3/envs/hugface/bin/python", # 当前虚拟环境的 python 位置
+    args=["/Users/mac/Documents/mcp/mcp/stock_mcp_server.py"], # mcp server 位置
 )
 
 async def main():
@@ -48,7 +55,7 @@ async def main():
             ]
             messages = [{
                 "role":"user",
-                "content":"帮我查一下北京的天气"
+                "content":"帮我查一下比亚迪的股票价格，并给出你的看法"
             }]
 
             response = client.chat.completions.create(
